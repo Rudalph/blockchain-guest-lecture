@@ -1,0 +1,13 @@
+Note 1. Before running the project delete the cache from hardhat folder
+
+COMMANDS TO RUN HARDHAT folder
+1. Start Local Ethereum Node: npx hardhat node {Accounts}
+2. Deploy the contracts: npx hardhat run scripts/deploy.js --network localhost {deployed contract address}
+
+Note 2. Paste the deployed contract address in Backend code (or more where needed)
+
+COMMANDS TO START BACKEND
+1. node server.js
+
+COMMANDS TO START FRONTEND
+1. simplehttpserver frontend

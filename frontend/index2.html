@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Group Chat dApp (MetaMask)</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #chatBox { border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+    .msg { margin-bottom: 10px; }
+    input[type="text"] { width: 70%; padding: 8px; }
+    button { padding: 8px 12px; margin-left: 5px; }
+  </style>
+</head>
+<body>
+  <h2>🦊 Group Chat with MetaMask</h2>
+  <div id="chatBox">Loading messages...</div>
+
+  <input type="text" id="messageInput" placeholder="Type your message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <script>
+    let web3;
+    let contract;
+    let userAccount;
+
+    const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // 🛑 Replace this
+    const CONTRACT_ABI = [
+    {
+      "inputs": [],
+      "name": "getAllMessages",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            },
+            {
+              "internalType": "string",
+              "name": "content",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct GroupChat.Message[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getMessageCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "messages",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "content",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_content",
+          "type": "string"
+        }
+      ],
+      "name": "postMessage",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ];
+
+    async function init() {
+      if (typeof window.ethereum === "undefined") {
+        alert("Please install MetaMask");
+        return;
+      }
+
+      web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+
+      const accounts = await web3.eth.getAccounts();
+      userAccount = accounts[0];
+
+      contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+      getMessages();
+    }
+
+    async function sendMessage() {
+      const msg = document.getElementById("messageInput").value;
+      if (!msg.trim()) {
+        alert("Enter a message");
+        return;
+      }
+
+      try {
+        await contract.methods.postMessage(msg).send({ from: userAccount });
+        document.getElementById("messageInput").value = "";
+        getMessages(); // refresh
+      } catch (error) {
+        console.error("Transaction failed:", error);
+        alert("Transaction cancelled or failed.");
+      }
+    }
+
+    async function getMessages() {
+      try {
+        const count = await contract.methods.getMessageCount().call();
+        const messages = [];
+        for (let i = 0; i < count; i++) {
+          const msg = await contract.methods.messages(i).call();
+          messages.push({
+            sender: msg.sender,
+            content: msg.content,
+            timestamp: Number(msg.timestamp)
+          });
+        }
+
+        const box = document.getElementById("chatBox");
+        box.innerHTML = "";
+        messages.forEach(m => {
+          const time = new Date(m.timestamp * 1000).toLocaleTimeString();
+          box.innerHTML += `
+            <div class="msg">
+              <b>${m.sender}</b>: ${m.content} <br><small>${time}</small>
+            </div>`;
+        });
+      } catch (err) {
+        console.error("Error loading messages:", err);
+        document.getElementById("chatBox").innerText = "Failed to load messages.";
+      }
+    }
+
+    // Init when page loads
+    window.addEventListener("load", init);
+  </script>
+</body>
+</html>
